@@ -24,8 +24,6 @@
         false
     ```
     
-- 暂未打包和 realease ，请直接使用代码，有空再 release
-
 ## 预览
 ### 命令行监控
 ![命令行监控](./preview/monitor-1.png)
@@ -56,7 +54,7 @@ go.torrent
 1. 确保 uTorrent 已开启 WebUI (网页界面)
 2. 在 uTorrent 安装目录下保证 ipfilter.dat 文件存在（若不存在则新建空白 ipfilter.dat 文件），脚本会在原有 ipfilter.dat 文件内容之后添加被屏蔽的迅雷 IP，不影响已有内容及其功能。 
 3. 在高级选项中设置 bt.use_rangeblock: false
-4. 参考 `UTorrent.ts` 中的 `repl_utorrent`
+4. 参考 `UTorrent.ts` 中的 `repl_utorrent`，修改 root_url, username, password, ipfilter_dat 参数
 
 
 #### uTorrent Log
