@@ -1,0 +1,47 @@
+{
+    "name": "utorrent-block-xunlei",
+    "version": "0.0.1",
+    "main": "./index.js",
+    "bin": {
+        "utorrent-block-xunlei": "./utorrent-block-xunlei.js"
+    },
+    "description": "Xunlei Blocker of uTorrent",
+    "keywords": [
+        "utorrent",
+        "xunlei",
+        "blocker"
+    ],
+    "type": "commonjs",
+    "engines": {
+        "node": ">=16.6.1"
+    },
+    "scripts": {
+        "build:npm": "tsc",
+        "build:burl": "pkg ./utorrent-block-xunlei.js --targets \"latest-win-x64,latest-macos-x64,latest-linux-x64\"",
+        "publish:npm": "npm publish"
+    },
+    "author": {
+        "name": "ShenHongFei",
+        "email": "shf19961008@gmail.com",
+        "url": "https://github.com/ShenHongFei"
+    },
+    "publisher": "hongfeishen",
+    "license": "MIT",
+    "homepage": "https://github.com/ShenHongFei/utorrent-block-xunlei",
+    "repository": {
+        "type": "git",
+        "url": "https://git.woa.com/ShenHongFei/utorrent-block-xunlei"
+    },
+    "dependencies": {
+        "xshell": "^0.0.9"
+    },
+    "devDependencies": {
+        "@types/lodash": "^4.14.170",
+        "@types/node": "^15.6.1",
+        "@types/qs": "^6.9.6",
+        "@types/shortid": "^0.0.29",
+        "@types/uuid": "^8.3.0",
+        "pkg": "^5.2.1",
+        "typescript": "^4.3.2"
+    }
+}
