@@ -75,13 +75,13 @@ go.torrent
 
 
 ## 使用方法
-1. 确保 uTorrent 已开启 WebUI (网页界面)
-    1.1 打开 uTorrent 设置 > 高级 > 网页界面
-    1.2 选上 "启用网页界面", 并在下方填写用户和密码, 记下来, 作为命令行 username 和 password 参数的值
+1. 确保 uTorrent 已开启 WebUI (网页界面)  
+1.1 打开 uTorrent 设置 > 高级 > 网页界面  
+1.2 选上 "启用网页界面", 并在下方填写用户和密码, 记下来, 作为命令行 username 和 password 参数的值  
 2. 在 uTorrent 安装目录下保证 ipfilter.dat 文件存在（若不存在则新建空白 ipfilter.dat 文件），脚本会在原有 ipfilter.dat 文件内容之后添加被屏蔽的迅雷 IP，不影响已有内容及其功能
 3. 安装最新版 Node.js: https://nodejs.org/en/
-4. 安装: npm i --global utorrent-block-xunlei
-5. utorrent-block-xunlei --help 查看用法
+4. 安装: `npm i --global utorrent-block-xunlei`
+5. 查看用法: `utorrent-block-xunlei --help`
 ```text
 Usage: utorrent-block-xunlei --port 50050 --username tom --password 123456 --ipfilter "C:/Users/tom/AppData/Roaming/uTorrent/ipfilter.dat"
 
@@ -98,7 +98,7 @@ Options:
   -h, --help             display help for command
 ```
 
-6. 启动 blocker (修改下参数的值): utorrent-block-xunlei --port 50050 --username tom --password 123456 --ipfilter "C:/Users/tom/AppData/Roaming/uTorrent/ipfilter.dat"
+6. 启动 blocker (修改下参数的值): `utorrent-block-xunlei --port 50050 --username tom --password 123456 --ipfilter "C:/Users/tom/AppData/Roaming/uTorrent/ipfilter.dat"`
 
 7. (可选，不影响屏蔽功能) 在 uTorrent 中开启屏蔽日志，查看被屏蔽的连接请求
     4.1 在 uTorrent 下方的日志面板中点击右键
@@ -120,7 +120,7 @@ Options:
 import { UTorrent, Torrent, Peer, TorrentData, TorrentFile, ResumeData } from 'utorrent-block-xunlei'
 
 let utorrent = await UTorrent.connect({
-    root_url: 'http://127.0.0.1:1000/gui/',
+    root_url: 'http://127.0.0.1:50050/gui/',
     username: 'xxx',
     password: 'xxxxxxxx',
     ipfilter_dat: 'C:/Users/xxx/AppData/Roaming/uTorrent/ipfilter.dat',
