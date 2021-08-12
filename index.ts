@@ -456,8 +456,8 @@ export class UTorrent {
     blocked_ips: Set<string>
     
     
-    static async launch () {
-        start('C:/Users/shf/AppData/Roaming/uTorrent/uTorrent.exe', [], { detached: true })
+    static async launch (exe: string) {
+        start(exe, [], { detached: true })
         await delay(1000 * 20)
     }
     
@@ -689,9 +689,9 @@ export class UTorrent {
 
 
 
-export const qqwry = new QQWRY(true)
+const qqwry = new QQWRY(true)
 
-export function get_ip_info (ip: string) {
+function get_ip_info (ip: string) {
     /*
     const data = await request_market_api({
         url: 'https://service-jr977f7k-1301115409.gz.apigw.tencentcs.com/release/',

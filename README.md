@@ -75,6 +75,8 @@ go.torrent
 
 ## 使用方法
 1. 确保 uTorrent 已开启 WebUI (网页界面)
+    1.1 打开 uTorrent 设置 > 高级 > 网页界面
+    1.2 选上 "启用网页界面", 并在下方填写用户和密码, 记下来, 作为命令行 username 和 password 参数的值
 2. 在 uTorrent 安装目录下保证 ipfilter.dat 文件存在（若不存在则新建空白 ipfilter.dat 文件），脚本会在原有 ipfilter.dat 文件内容之后添加被屏蔽的迅雷 IP，不影响已有内容及其功能
 4. [下载压缩包并解压](https://github.com/ShenHongFei/utorrent-block-xunlei/releases/download/v1.0/uTorrentBlockXunlei.zip)  
 
@@ -95,8 +97,6 @@ go.torrent
 
 ## API
 ```ts
-UTorrent.launch()
-
 let utorrent = await UTorrent.connect({
     root_url: 'http://127.0.0.1:1000/gui/',
     username: 'xxx',
