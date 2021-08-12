@@ -1,0 +1,14 @@
+node_modules/
+
+*.ts
+!*.d.ts
+
+/preview/
+
+/.npmrc
+/.gitignore
+/.npmignore
+/desktop.ini
+/icon.ico
+/tsconfig.json
+/package-lock.json
