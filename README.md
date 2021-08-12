@@ -78,10 +78,28 @@ go.torrent
     1.1 打开 uTorrent 设置 > 高级 > 网页界面
     1.2 选上 "启用网页界面", 并在下方填写用户和密码, 记下来, 作为命令行 username 和 password 参数的值
 2. 在 uTorrent 安装目录下保证 ipfilter.dat 文件存在（若不存在则新建空白 ipfilter.dat 文件），脚本会在原有 ipfilter.dat 文件内容之后添加被屏蔽的迅雷 IP，不影响已有内容及其功能
-4. [下载压缩包并解压](https://github.com/ShenHongFei/utorrent-block-xunlei/releases/download/v1.0/uTorrentBlockXunlei.zip)  
+3. 安装最新版 Node.js: https://nodejs.org/en/
+4. 安装: npm i --global utorrent-block-xunlei
+5. utorrent-block-xunlei --help 查看用法
+```text
+Usage: utorrent-block-xunlei --port 50050 --username tom --password 123456 --ipfilter "C:/Users/tom/AppData/Roaming/uTorrent/ipfilter.dat"
 
+Xunlei Blocker of uTorrent
 
-4. (可选，不影响屏蔽功能) 在 uTorrent 中开启屏蔽日志，查看被屏蔽的连接请求
+Options:
+  -V, --version          output the version number
+  --hostname [hostname]  选填, uTorrent WebUI 主机的 hostname, 默认为本机 127.0.0.1, 也可设置远程主机 IP 或域名 (default: "127.0.0.1")
+  --port <port>          必填, "uTorrent 设置 > 连接 > 监听端口 > 传入连接所使用的端口" 中设置的端口号
+  --username <username>  必填, "uTorrent 设置 > 高级 > 网页界面 > 身份验证 > 用户" 中设置的用户名
+  --password <password>  必填, "uTorrent 设置 > 高级 > 网页界面 > 身份验证 > 密码" 中设置的密码
+  --ipfilter <ipfilter>  必填, uTorrent 数据目录中 ipfilter.dat 文件的完整路径，如: C:/Users/tom/AppData/Roaming/uTorrent/ipfilter.dat
+  --interval [interval]  选填, 检测 peers 的间隔（秒）, 默认每隔 20 秒检测并屏蔽一次 (default: "20")
+  -h, --help             display help for command
+```
+
+6. 启动 blocker (修改下参数的值): utorrent-block-xunlei --port 50050 --username tom --password 123456 --ipfilter "C:/Users/tom/AppData/Roaming/uTorrent/ipfilter.dat"
+
+7. (可选，不影响屏蔽功能) 在 uTorrent 中开启屏蔽日志，查看被屏蔽的连接请求
     4.1 在 uTorrent 下方的日志面板中点击右键
     4.2 勾选 `记录用户通讯信息 > 记录拦截连接`
     4.3 有被屏蔽的用户连接时可以在 uTorrent 日志面板中看到类似下面的日志
@@ -95,8 +113,11 @@ go.torrent
 ...
 ```
 
+
 ## API
 ```ts
+import { UTorrent, Torrent, Peer, TorrentData, TorrentFile, ResumeData } from 'utorrent-block-xunlei'
+
 let utorrent = await UTorrent.connect({
     root_url: 'http://127.0.0.1:1000/gui/',
     username: 'xxx',

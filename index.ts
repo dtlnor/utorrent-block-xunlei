@@ -6,7 +6,7 @@ import QQWRY from 'lib-qqwry'
 export * from './resume-data'
 
 
-class Peer {
+export class Peer {
     country: string
     ip: string
     reverse_dns: string
@@ -169,7 +169,7 @@ class Peer {
 }
 
 
-enum Status {
+export enum Status {
     STARTED  = 1 << 0, 
     CHECKING = 1 << 1, 
     ERROR    = 1 << 4, 
@@ -178,7 +178,7 @@ enum Status {
 }
 
 
-class Torrent {
+export class Torrent {
     hash: string
     
     status: number
