@@ -1,7 +1,7 @@
 # uTorrent 自动屏蔽迅雷脚本 (Xunlei Blocker of uTorrent)
 
 <p align='center'>
-    <img src='./utorrent-block-xunlei.svg' alt='utorrent-block-xunlei.svg' width='96'>
+    <img src='./icon.svg' alt='utorrent-block-xunlei icon' width='96'>
 </p>
 
 <h2 align='center'>
@@ -91,6 +91,39 @@ go.torrent
 [2018-11-22 19:04:21]  IpFilter blocked peer 183.25.54.216
 [2018-11-22 19:04:46]  IpFilter blocked peer 223.81.192.235
 ...
+```
+
+## API
+```ts
+UTorrent.launch()
+
+let utorrent = await UTorrent.connect({
+    root_url: 'http://127.0.0.1:1000/gui/',
+    username: 'xxx',
+    password: 'xxxxxxxx',
+    ipfilter_dat: 'C:/Users/xxx/AppData/Roaming/uTorrent/ipfilter.dat',
+    interval: 20 * 1000,
+    print: {
+        torrents: '所有',
+        peers: true
+    }
+})
+
+utorrent.start_blocking()
+
+utorrent.hide_display()
+
+utorrent.show_display()
+
+utorrent.stop_blocking()
+
+utorrent.reset_ipfilter()
+
+utorrent.block_peers()
+
+utorrent.print_blockeds()
+
+utorrent.state
 ```
 
 ## 相关项目

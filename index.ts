@@ -1,12 +1,7 @@
-import util from 'util'
+import { isIPv6, isIPv4 } from 'net'
 
-import omit from 'lodash/omit'
-
-import { request_page, request_json, get_ip_info } from 'MyNet'
-import { fread_lines, fwrite } from 'MyFile'
-import { delay, log_line } from 'MyUtils'
-import { psh } from 'MyProcess'
-import { isIPv6 } from 'net'
+import { request_page, request_json, fread_lines, fwrite, delay, log_line, inspect, start } from 'xshell'
+import QQWRY from 'lib-qqwry'
 
 
 class Peer {
@@ -112,15 +107,15 @@ class Peer {
             /* IP:PORT IP 信息 */   this.format_ipinfo() +
             /* 下载速度     */      this.format_download_speed()    + ' ／  '  + /* 上传速度 */ this.format_upload_speed() + '  |  ' + 
             /* 累计下载     */      this.format_downloaded()        + ' ／  '  + /* 累计上传 */ this.uploaded.to_fsize_str().pad(12) + ' ' +
-            /* 种子名称     */      this.torrent.name.limit(90)
+            /* 种子名称     */      this.torrent.name.limit(80)
     }
     
     
     format_client () {
         if (this.client.includes('-XL0012-'))
-            return ( this.client.slice(0, '-XL0012-'.length) + ' ***' ).limit(30)
+            return ( this.client.slice(0, '-XL0012-'.length) + ' ***' ).limit(20)
         
-        return this.client.limit(30)
+        return this.client.limit(20)
     }
     
     format_download_speed () {
@@ -147,27 +142,27 @@ class Peer {
                 ( this.ip + ':' + this.port ).pad(ip_width) + get_ip_info(this.ip).limit(info_width)
     }
     
-    [util.inspect.custom] () {
-        const _this = {
+    [inspect.custom] () {
+        return inspect({
             ...this, 
             should_block: this.should_block,
-            progress: this.progress / 10 + '%',
+            progress: `${this.progress / 10}%`,
             uploaded: this.uploaded.to_fsize_str(),
             downloaded: this.downloaded.to_fsize_str(),
-            upload_speed: this.upload_speed.to_fsize_str() + '/s',
-            download_speed: this.download_speed.to_fsize_str() + '/s',
-            peer_download_speed: this.peer_download_speed.to_fsize_str() + '/s',
-            max_upload_speed: this.max_upload_speed.to_fsize_str() + '/s',
-            max_download_speed: this.max_download_speed.to_fsize_str() + '/s',
+            upload_speed: `${this.upload_speed.to_fsize_str()}/s`,
+            download_speed: `${this.download_speed.to_fsize_str()}/s`,
+            peer_download_speed: `${this.peer_download_speed.to_fsize_str()}/s`,
+            max_upload_speed: `${this.max_upload_speed.to_fsize_str()}/s`,
+            max_download_speed: `${this.max_download_speed.to_fsize_str()}/s`,
             waited: this.waited.to_str(),
-        }
-        
-        const omit_keys = [ 'torrent', ... this.utp === 0 ? ['utp'] : [ ], 'relevance' ]
-        
-        return this.torrent.state[0] === '做种' ? 
-            omit(_this, omit_keys, [ 'download_speed' ])
-        :
-            omit(_this, omit_keys)
+        }, {
+            omit: [
+                'torrent', 
+                ... this.utp === 0 ? ['utp'] : [ ], 
+                'relevance',
+                ... this.torrent.state[0] === '做种' ? ['download_speed'] : [ ],
+            ]
+        })
     }
 }
 
@@ -358,8 +353,8 @@ class Torrent {
     }
     
     
-    [util.inspect.custom] () {
-        const _this = {
+    [inspect.custom] () {
+        return inspect({
             ...this,
             ... this.peers ? { peers: this.peers.length } : { },
             size: this.size.to_fsize_str(),
@@ -373,18 +368,16 @@ class Torrent {
             date_added: this.date_added.to_str(),
             date_completed: this.date_completed.to_str(),
             save_path: this.save_path,
-        }
-        
-        
-        
-        const omit_keys = [ 'utorrent', 'status', 'ratio', 'label', 'availability', 'queue_position', 'download_url', 'rss_feed_url', 'stream_id', 'app_update_url' ]
-        
-        return this.state[0] === '做种' ?
-            omit(_this, omit_keys, [ 'progress', 'downloaded', 'download_speed', 'time_remaining', 'seeds_connected', 'remaining', 'status_message' ])
-        : this.state[0] === '下载' ?
-            omit(_this, omit_keys)
-        :
-            omit(_this, omit_keys, [ 'peers', 'upload_speed', 'download_speed', 'time_remaining', 'peers_connected', 'peers_in_swarm', 'seeds_connected', 'seeds_in_swarm' ])
+        }, {
+            omit: [
+                'utorrent', 'status', 'ratio', 'label', 'availability', 'queue_position', 'download_url', 'rss_feed_url', 'stream_id', 'app_update_url',
+                ... (() => {
+                    if (this.state[0] === '做种') return ['progress', 'downloaded', 'download_speed', 'time_remaining', 'seeds_connected', 'remaining', 'status_message']
+                    if (this.state[0] === '下载') return []
+                    return ['peers', 'upload_speed', 'download_speed', 'time_remaining', 'peers_connected', 'peers_in_swarm', 'seeds_connected', 'seeds_in_swarm']
+                })()
+            ]
+        })
     }
     
     
@@ -462,8 +455,10 @@ export class UTorrent {
     
     blocked_ips: Set<string>
     
-    static async start () {
-        await psh('C:/Users/shf/AppData/Roaming/uTorrent/uTorrent.exe')
+    
+    static async launch () {
+        start('C:/Users/shf/AppData/Roaming/uTorrent/uTorrent.exe', [], { detached: true })
+        await delay(1000 * 20)
     }
     
     
@@ -692,41 +687,27 @@ export class UTorrent {
     
 }
 
-export default UTorrent
 
 
-// ------------------------------------ uTorrent
-async function repl_utorrent () {
-    UTorrent.start()
-    
-    let utorrent = await UTorrent.connect({
-        root_url: 'http://127.0.0.1:1000/gui/',
-        username: 'xxx',
-        password: 'xxxxxxxx',
-        ipfilter_dat: 'C:/Users/xxx/AppData/Roaming/uTorrent/ipfilter.dat',
-        interval: 20 * 1000,
-        print: {
-            torrents: '所有',
-            peers: true
-        }
+export const qqwry = new QQWRY(true)
+
+export function get_ip_info (ip: string) {
+    /*
+    const data = await request_market_api({
+        url: 'https://service-jr977f7k-1301115409.gz.apigw.tencentcs.com/release/',
+        secret_id: 'AKIDBggAWhLvbewlabivKmwTKs5ZGzm37tbZ642',
+        secret_key: 'aL3TRtUyWtDHcUlA8US467CMT4hn87JE64XX7E0U',
+        queries: { ip: '' }
     })
+    */
     
-    utorrent.start_blocking()
-    
-    utorrent.hide_display()
-    
-    utorrent.show_display()
-    
-    utorrent.stop_blocking()
-    
-    utorrent.reset_ipfilter()
-    
-    utorrent.block_peers()
-    
-    utorrent.print_blockeds()
-    
-    
-    utorrent.state
+    if (!isIPv4(ip))
+        return ''
+    const { Country, Area } = qqwry.searchIP(ip)
+    const country = Country.trim().replace('浙金省', '浙江省').space()
+    const area = Area.trim().rm('CZ88.NET').space()
+    return country + (area ? '／' + area : '')
 }
 
 
+export default UTorrent
