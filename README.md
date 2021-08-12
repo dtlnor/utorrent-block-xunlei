@@ -25,9 +25,9 @@
 ## 功能
 ### 每隔 30 秒，自动检查 uTorrent 已连接的用户列表，找出迅雷客户端，强制断开，不给吸血雷上传任何数据，并将用户 IP 加入黑名单阻止其再次连接，把带宽留给正规 BT 客户端
 
-- `utorrent.ts` 支持 IP 定位，可根据地理位置屏蔽 peers
+- 支持 IP 定位，可根据地理位置屏蔽 peers
 
-- `resume-data.ts` 批量可编程式修改 uTorrent 的 resume.dat 内保存的任务信息，从而:
+- 批量可编程式修改 uTorrent 的 resume.dat 内保存的任务信息，从而:
     - 在任务或下载文件丢失后，通过修改 resume.dat 跳过文件强制检查，继续做种
     - 可以批量修改本地文件的路径和文件名，并建立到原有种子文件内文件信息的映射，保持继续做种的能力
     - 批量重命名任务，恢复上传量、下载量
@@ -44,15 +44,6 @@
     :
         false
     ```
-
-## 预览
-### 命令行监控
-![命令行监控](./preview/monitor-1.png)
-![](./preview/monitor-2.png)
-
-### resume.dat 解析及文件重定向
-![resume.dat 解析及文件重定向](./preview/resume-dat-1.png)
-
 
 ## 屏蔽列表
 ### 完全屏蔽
@@ -72,6 +63,16 @@ go.torrent
 2. 按照用户 (peer) 的客户端名称 (client) 筛选出使用迅雷的用户，将 IP 写入 ipfilter.dat 文件
 3. 发送 HTTP 请求让 uTorrent 重新加载 ipfilter.dat
 4. uTorrent 禁止 ipfilter.dat 中的 IP 连接
+
+
+## 预览
+### 命令行监控
+![命令行监控](./preview/monitor-1.png)
+![](./preview/monitor-2.png)
+
+### resume.dat 解析及文件重定向
+![resume.dat 解析及文件重定向](./preview/resume-dat-1.png)
+
 
 ## 使用方法
 1. 确保 uTorrent 已开启 WebUI (网页界面)
