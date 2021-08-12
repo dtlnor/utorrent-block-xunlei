@@ -3,6 +3,8 @@ import { isIPv6, isIPv4 } from 'net'
 import { request_page, request_json, fread_lines, fwrite, delay, log_line, inspect, start } from 'xshell'
 import QQWRY from 'lib-qqwry'
 
+export * from './resume-data'
+
 
 class Peer {
     country: string

@@ -1,14 +1,8 @@
-/* eslint-disable no-irregular-whitespace */
-import util from 'util'
-
 import bencode from 'bencode'
-import omit from 'lodash/omit'
-import sort_by from 'lodash/sortBy'
+import omit from 'lodash/omit.js'
+import sort_by from 'lodash/sortBy.js'
 
-import { fread, frename, fwrite, fmove } from 'MyFile'
-import { paste, copy } from 'MyREPL'
-
-import UTorrent from './UTorrent'
+import { fread, frename, fwrite, fmove, inspect, flist } from 'xshell'
 
 
 export class TorrentData {
@@ -28,7 +22,7 @@ export class TorrentData {
     /** 高级 > 设置目标名称  
         文件位置的重定位表，格式为 [index, fp][]，未重定位则无此字段  
         index: 种子文件的文件列表所对应的文件序号 (从 0 开始编号)  
-        fp:    文件重定位后的相对路径  
+        fp:    文件重定位后的相对 path 的路径  
         
         比如：  
         0  : 1.mkv  
@@ -47,7 +41,18 @@ export class TorrentData {
     
     labels: string[]
     
+    started: number
+    
+    valid: number
+    
+    have: Buffer
+    
+    hashed: Buffer
+    
+    known: Buffer
+    
     [key: string]: any
+    
     
     constructor (fp_torrent: string, data: any) {
         this.fp_torrent = fp_torrent.to_slash()
@@ -57,18 +62,22 @@ export class TorrentData {
                 this[key] = ( value as Buffer ).toString()
                 return
             }
+            
             if (key === 'trackers' || key === 'labels') {
                 this[key] = ( value as Buffer[] ).map( buf => buf.toString() )
                 return
             }
+            
             if (key === 'targets') {
                 this[key] = ( value as [number, Buffer][] ).map( ([index, fp]) => ([ index, fp.toString().to_slash() ]) )
                 return
             }
+            
             if (key === 'path') {
                 this[key] = ( value as Buffer ).toString().to_slash()
                 return
             }
+            
             this[key] = value
         })
     }
@@ -76,21 +85,27 @@ export class TorrentData {
     
     to_str () {
         const title_width = 14
-        return this.caption + '    ' + (this.dl_error || '') + '    ' + '\n' + [
-            '种子文件: '.pad(title_width)    + this.fp_torrent,
-            '文件夹: '.pad(title_width)      + this.path,
-            '标签: '.pad(title_width)        + this.labels.join(', '),
-            '已下载: '.pad(title_width)      + this.downloaded.to_fsize_str() + '    ／    已上传: ' + this.uploaded.to_fsize_str()  + '    分块大小: ' + this.blocksize.to_fsize_str(),
-            'trackers:'.pad(title_width)     + 'Array<' + this.trackers.length + '> [' + this.trackers.slice(0, 2).join(', ') + ']',
-            ... this.targets ? [ '文件重定位: ' ] : [ ],
-            ... (this.targets || []).map( ([index, fp]) => 
-                    index + ': ' + fp
+        return `${this.caption}\n` + [
+            `${'种子:'.pad(title_width)     }${this.fp_torrent}`,
+            `${'文件夹:'.pad(title_width)   }${this.path}`,
+            `${'标签:'.pad(title_width)     }${this.labels.join(', ')}`,
+            `${'已下载:'.pad(title_width)   }${this.downloaded.to_fsize_str()}    ／    已上传: ${this.uploaded.to_fsize_str()}    分块大小: ${this.blocksize.to_fsize_str()}`,
+            ... !this.valid ? [
+                `${'错误:'.pad(title_width)   }${this.dl_error || ''}`
+            ] : [ ],
+            
+            `${'trackers:'.pad(title_width)}Array<${this.trackers.length}> [${this.trackers.slice(0, 2).join(', ')}]`,
+            ... this.targets ? [
+                '文件重定位:',
+                ... this.targets.map( ([index, fp]) => 
+                    `${index}: ${fp}`
                 ).indent(2),
+            ] : [ ],
         ].indent(2).join_lines()
     }
     
     
-    [util.inspect.custom] () {
+    [inspect.custom] () {
         return this.to_str()
     }
     
@@ -106,8 +121,17 @@ export class TorrentData {
     
     
     relocate_torrent (fp_torrent: string) {
-        if (!fp_torrent.fexists) throw new Error('fp_torrent 文件不存在: ' + fp_torrent)
+        if (!fp_torrent.fexists) throw new Error(`fp_torrent 文件不存在: ${fp_torrent}`)
         this.fp_torrent = fp_torrent.to_backslash()
+    }
+    
+    
+    fix () {
+        this.started = 0
+        this.valid = 1
+        this.have.fill(0xff)
+        this.hashed.fill(0xff)
+        this.known.fill(0xff)
     }
 }
 
@@ -145,7 +169,7 @@ export class TorrentFile {
     }
     
     
-    [util.inspect.custom] () {
+    [inspect.custom] () {
         return [
             'TorrentFile {',
             ... [
@@ -172,13 +196,19 @@ export class ResumeData {
     }
     
     static async parse (fp_resume_dat: string) {
-        const data = bencode.decode( await fread(fp_resume_dat, { encoding: 'BINARY' }))
+        const data = bencode.decode(
+            await fread(fp_resume_dat, { encoding: 'BINARY' })
+        )
         
         return new ResumeData({
             fp_resume_dat,
             rec: data.rec,
             torrents: sort_by(
-                Object.entries( omit(data, 'rec', '.fileguard') ).map( ([fp_torrent, data]) => new TorrentData(fp_torrent, data)),
+                Object.entries(data).filter(([key]) => 
+                    key !== 'rec' && key !== '.fileguard'
+                ).map(([fp_torrent, data]) => 
+                    new TorrentData(fp_torrent, data)
+                ),
                 'caption'
             )
         })
@@ -190,7 +220,7 @@ export class ResumeData {
             rec: this.rec,
             ... Object.fromEntries(
                     this.torrents.map( torrent => 
-                        ([ torrent.fp_torrent.to_backslash(), torrent.to_data() ])) 
+                        ([torrent.fp_torrent.to_backslash(), torrent.to_data()]))
             )
         }))
     }
@@ -206,30 +236,28 @@ export class ResumeData {
     
     
     /** 根据 pattern 查找首个匹配的种子，不传 pattern 参数时返回最近添加的种子 */
-    get_torrent (pattern?: string | RegExp): TorrentData {
+    find_torrent (pattern?: string | RegExp): TorrentData {
         if (!pattern) return sort_by(this.torrents, 'added_on').last
         return this.torrents.find( torrent => torrent.caption.match(pattern) )
     }
     
-    get_torrents (pattern: string | RegExp): TorrentData[] {
+    find_torrents (pattern: string | RegExp): TorrentData[] {
         return this.torrents.filter( torrent => torrent.caption.match(pattern))
     }
     
     
-    [util.inspect.custom] () {
-        return [
-            'ResumeData {',
-            ... [
-                'fp_resume_dat: ' + this.fp_resume_dat, 
+    [inspect.custom] () {
+        return 'ResumeData {\n' +
+            [
+                `fp_resume_dat: ${this.fp_resume_dat}\n`,
                 ... this.torrents.map( torrent => {
                     return [
                         ... torrent.to_str().split_lines(),
                         ''
                     ]
                 })
-            ].flat().indent(2),
-            '}'
-        ].join_lines()
+            ].flat().indent(2).join_lines() + '\n' +
+        '}'
     }
 }
 
@@ -260,60 +288,69 @@ async function repl_rename_onepice () {
     const fp_mkv = torrent.path
     
     // 新的种子文件路径
-    const fp_torrent_   = dir + episode + '.torrent'
+    const fp_torrent_   = `${dir}${episode}.torrent`
     
     // 移动种子文件
-    await fmove( fp_torrent, fp_torrent_)
+    await fmove(fp_torrent, fp_torrent_)
     
     // 移动下载好的 mkv
-    await fmove(fp_mkv, dir + episode + '.mkv')
+    await fmove(fp_mkv, `${dir}${episode}.mkv`)
     
     // ------------ 更新任务
-    torrent.caption    = '海贼王 ' + episode
-    torrent.fp_torrent = dir + episode + '.torrent'
-    torrent.path       = dir + episode + '.mkv'
-    torrent.labels     = [ '海贼王' ]
+    torrent.caption    = `海贼王 ${episode}`
+    torrent.fp_torrent = `${dir}${episode}.torrent`
+    torrent.path       = `${dir}${episode}.mkv`
+    torrent.labels     = ['海贼王']
     
     
     await resume_data.save()
-    
-    UTorrent.start()
 }
 
 
 
 async function repl_resume_dat () {
+    // 加载数据
     let resume_data = await ResumeData.parse('C:/Users/shf/AppData/Roaming/uTorrent/resume.dat')
     
+    
     // ------------ 选择要修改的种子
+    let torrents = resume_data.torrents.filter(({ caption, labels }) => labels.includes('电影'))
+    
+    let torrent = torrents[0]
+    
+    // let torrents = resume_data.torrents.filter(({ started, labels, targets, caption }) => labels.includes('ACGN') && started === 4 && !targets && caption.includes('Tom'))
+    
+    // let torrent = torrents[0]
+    // let torrent = resume_data.find_torrent('Tom')
+    
+    
     // 按顺序
     // let torrent     = resume_data.torrents[3]
     
     // 按名称
-    // let torrent = resume_data.get_torrent('君の')
-    // let torrents = resume_data.get_torrents('〈物語〉シリーズ')
+    // let torrent = resume_data.find_torrent('君の')
+    // let torrents = resume_data.find_torrents('〈物語〉シリーズ')
     
     // 最近添加
-    let torrent = sort_by(resume_data.torrents, 'added_on').reverse()[0]
-    let torrents = sort_by(resume_data.torrents, 'added_on').reverse().slice(0, 5)
+    // let torrent = sort_by(resume_data.torrents, 'added_on').reverse()[0]
+    // let torrents = sort_by(resume_data.torrents, 'added_on').reverse().slice(0, 5)
     
     // 私有种子
     let torrent_pt = sort_by(resume_data.torrents, 'added_on').reverse()[0]
     
     
     // ------------ 指定存放目录及名称
-    // 设置 & 打开 存放目录
-    const dir  = 'G:/ACGN/〈物語〉シリーズ/続・終物語/'
-    
-    // 在 D:/torrents 中查找类似种子，删除多余的种子
-    
-    // 现有种子文件名，视频文件名:
-    // 続・終物語　[Nekomoe kissaten&VCB-Studio][Ma10p_1080p].torrent
-    // [Nekomoe kissaten&VCB-Studio] Zoku Owarimonogatari [06][Ma10p_1080p][x265_flac].mkv
+    // 获取当前种子路径等信息
+    const { fp_torrent, caption } = torrent
     
     
     // 设置主标题 ( 注意日文空格 '　'.charCodeAt(0) )
-    const name = '〈物語〉シリーズ 続・終物語'
+    const name = '妹さえいればいい。'
+    
+    
+    // 设置 & 打开 存放目录
+    const dir  = `G:/ACGN/${name}/`
+    // const dir = 'G:/ACGN/WHITE ALBUM/1.anime/'
     
     
     // 设置版本
@@ -323,6 +360,7 @@ async function repl_resume_dat () {
     // 设置压制信息
     const info = 'BDRip 1080p x265 Ma10p FLAC'
     // const info = 'BDRip 1080p x265 Ma10p FLACx2'
+    // const info = 'BDRip 1080p x265 Ma10p FLACx3'
     // const info = 'BDRip 1080p H.265.10bit FLACx2'
     // const info = 'BDRip 1080p x265 Ma10p FLAC+AAC'
     // const info = 'BDRip 1080p H.265 YUV444P10 MKV FLAC Chap'
@@ -333,69 +371,82 @@ async function repl_resume_dat () {
     // const info = 'BDRip 1080p H.264 FLAC'
     // const info = 'BDRip 1080p x264 8bit FLAC'
     // const info = 'BDRip 1080p x264 Hi10p 2FLAC'
+    // const info = 'BDRip 720p x264 Hi10p FLAC'
     // const info = 'BDRip 816p x265 Ma10p FLAC'
     // const info = '1080p MP4'
     // const info = ''
     
     
     // 设置字幕组／来源
-    const origin = '猫萌喫茶店字幕组 & VCB-Studio'
+    const origin = 'VCB-Studio'
+    // const origin = 'DHR & MakariHoshiyume & VCB-Studio'
+    // const origin = 'Snow-Raws'
+    
     
     // 生成 caption
-    const caption = name + 
-        ( version ?  ' ' + version.bracket('ROUND')  :  '' ) + 
-        ( info    ?  ' ' + info.bracket('SQUARE')    :  '' ) +
-        ( origin  ?  ' ' + origin.bracket('SQUARE')  :  '' )
+    const caption_ = name + 
+        ( version ?  ` ${version.bracket('ROUND')}`  :  '' ) + 
+        ( info    ?  ` ${info.bracket('SQUARE')}`    :  '' ) +
+        ( origin  ?  ` ${origin.bracket('SQUARE')}`  :  '' )
     
     
     // 生成种子路径
-    const fp_torrent = dir + caption + '.torrent'
+    const fp_torrent_ = `${dir}${caption_}.torrent`
     
     
-    // ------------ 保存修改
-    // 重命名种子文件
-    copy(caption)
+    // ------------ 保存修改到 torrent
+    // 移动种子
+    await fmove(fp_torrent, fp_torrent_)
     
     // 修改任务标题
-    torrent.caption = caption
+    torrent.caption = caption_
     
     // 修改种子路径
-    torrent.fp_torrent = fp_torrent
+    torrent.fp_torrent = fp_torrent_
     
     // 修改任务文件夹
     torrent.path = dir
     
     // 修改任务标签
-    torrent.labels = [ 'ACGN' ]
-    // torrent.labels = [ '电影' ]
-    
+    torrent.labels = ['ACGN']
+    // torrent.labels = ['电影']
     
     
     
     // 参考原 torrent 中的 files
-    const ftorrent    = await TorrentFile.parse(fp_torrent)
+    // const ftorrent    = await TorrentFile.parse(fp_torrent_)
+    const ftorrent    = await TorrentFile.parse(torrent.fp_torrent)
     
     const ftorrent_pt = await TorrentFile.parse(fp_torrent.replace('.torrent', '.pt.torrent'))
     
     
+    // 查看种子中的文件列表
+    ftorrent.info.files.forEach(({ path }, i) => {
+        console.log(`${String(i).pad(3, { character: '0', position: 'left' }).green} ${path}`)
+    })
+    
+    
     // (optional) 修改文件名
-    // [ [ 58, 'BDRips/01.mkv' ], [ 59, 'BDRips/01.sc.ass' ], ... ]
+    // [[58, 'BDRips/01.mkv'], [59, 'BDRips/01.sc.ass'], ... ]
     torrent.targets =
         [
-            ... ftorrent.get_fps().slice(0, 110).map( (fp, index) => 
-                ([ 0 + index, fp.reformat(
+            ... ftorrent.get_fps().slice(58).map( (fp, index) => 
+                ([58 + index, fp.refmt(
                     '[VCB-S]Hanamonogatari[1080p]/{any}',
                     '花物語/{any}',
                 )])),
             
         ] as [number, string][]
         
+    let fps = await flist('G:/ACGN/猫和老鼠/', { absolute: false })
     
+    fps = fps.slice(37)
+    torrent.targets = fps.map((fp, i) => ([37 + i, fp]))
     
     // (optional) 重命名文件 ①
     await Promise.all([
         ftorrent.get_fps().slice(0, 37).map( async (fp, index) => {
-            const fp_ = fp.reformat(
+            const fp_ = fp.refmt(
                 'TOM AND JERRY EP{episode} {title}.mkv',
                 '{episode}   {title}.mkv',
             )
@@ -406,10 +457,10 @@ async function repl_resume_dat () {
     
     
     // (optional) 重命名文件 ②
-    const text = paste()
+    const text = '' // paste()
     await Promise.all([
         text.split_lines().trim_lines().map( async fp => {
-            const fp_ = fp.reformat(
+            const fp_ = fp.refmt(
                 '{episode}   {title}.mkv',
                 '0{episode}   {title}.mkv',
             )
@@ -438,10 +489,4 @@ async function repl_resume_dat () {
     
     // ------------ 保存修改到 resume.dat
     await resume_data.save()
-    
-    
-    UTorrent.start()
 }
-
-
-
