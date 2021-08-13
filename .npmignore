@@ -5,6 +5,7 @@ node_modules/
 *.exe
 
 /preview/
+/.github/
 
 /.npmrc
 /.gitignore
