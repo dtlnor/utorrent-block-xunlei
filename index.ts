@@ -490,7 +490,9 @@ export class UTorrent {
         
         let utorrent = new UTorrent({
                 ...options, 
-                blocked_ips: new Set((await fread_lines(options.ipfilter_dat)).trim_lines()),
+                blocked_ips: new Set((
+                    await fread_lines(options.ipfilter_dat)
+                ).trim_lines()),
                 print: (() => {
                     if (!('print' in options)) return { torrents: true, peers: true }
                     if (typeof options.print === 'boolean') return { torrents: options.print, peers: options.print }

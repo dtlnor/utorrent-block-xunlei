@@ -92,13 +92,13 @@ Xunlei Blocker of uTorrent
 
 Options:
   -V, --version                output the version number
-  --hostname <hostname>        选填, uTorrent WebUI 主机的 hostname, 默认为本机 127.0.0.1, 也可设置远程主机 IP 或域名 (default: "127.0.0.1")
-  --port <port>                必填, "uTorrent 设置 > 连接 > 监听端口 > 传入连接所使用的端口" 中设置的端口号
-  --username <username>        必填, "uTorrent 设置 > 高级 > 网页界面 > 身份验证 > 用户" 中设置的用户名
-  --password <password>        必填, "uTorrent 设置 > 高级 > 网页界面 > 身份验证 > 密码" 中设置的密码
-  --ipfilter <ipfilter>        必填, uTorrent 数据目录中 ipfilter.dat 文件的完整路径，如: C:/Users/tom/AppData/Roaming/uTorrent/ipfilter.dat
-  --interval <interval>        选填, 检测 peers 的间隔（秒）, 默认每隔 20 秒检测并屏蔽一次 (default: "20")
-  --reset-ipfilter <interval>  选填, 在启动时以及每间隔 interval 秒后自动清空 ipfilter.dat 的内容
+  --hostname <hostname>        可选参数, uTorrent WebUI 主机的 hostname, 默认为本机 127.0.0.1, 也可设置远程主机 IP 或域名 (default: "127.0.0.1")
+  --port <port>                必传参数, "uTorrent 设置 > 连接 > 监听端口 > 传入连接所使用的端口" 中设置的端口号
+  --username <username>        必传参数, "uTorrent 设置 > 高级 > 网页界面 > 身份验证 > 用户" 中设置的用户名
+  --password <password>        必传参数, "uTorrent 设置 > 高级 > 网页界面 > 身份验证 > 密码" 中设置的密码
+  --ipfilter <ipfilter>        必传参数, uTorrent 数据目录中 ipfilter.dat 文件的完整路径，如: C:/Users/tom/AppData/Roaming/uTorrent/ipfilter.dat
+  --interval <interval>        可选参数, 检测 peers 的间隔（秒）, 默认每隔 20 秒检测并屏蔽一次 (default: "20")
+  --interval-reset <interval>  可选参数, 间隔 interval 秒自动重置当前时间间隔内被动态屏蔽的 IP，默认间隔 2 小时 (default: "7200")
   -h, --help                   display help for command
 ```
 
@@ -122,6 +122,7 @@ Options:
 在 `utorrent-block-xunlei` 命令行窗口中输入 `utorrent` 可通过 REPL 查看其属性，调用其方法
 如输入 `utorrent.reset_ipfilter()` 可清空屏蔽列表和 ipfilter.dat, `utorrent.print_blockeds()` 可查看被屏蔽的 IP
 
+9. 退出 utorrent-block-xunlei 时需在命令行窗口中输入 `exit()`, 以保证 `ipfilter.dat` 恢复到运行前的状态，不残留动态屏蔽的 IP
 
 ## API
 1. 安装最新版 Node.js: https://nodejs.org/en/
