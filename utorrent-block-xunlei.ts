@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
+import repl from 'repl'
+
 import { program } from 'commander'
 import { log_section } from 'xshell'
 
 import UTorrent from './index.js'
 import package_json from './package.json'
 
+declare global {
+    var utorrent: UTorrent
+}
 
 (async function main () {
     // const zh = Intl.DateTimeFormat().resolvedOptions().locale.startsWith('zh')
@@ -44,7 +49,17 @@ import package_json from './package.json'
     
     let utorrent = await UTorrent.connect(options)
     
+    global.utorrent = utorrent
+    
     log_section('started blocking', { time: true, color: 'green' })
     
     utorrent.start_blocking()
+    
+    repl.start({
+        prompt: '',
+        replMode: repl.REPL_MODE_SLOPPY,
+        useGlobal: true,
+        useColors: true,
+        terminal: true,
+    })
 })()

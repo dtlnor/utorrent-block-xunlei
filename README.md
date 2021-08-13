@@ -75,12 +75,13 @@ go.torrent
 
 
 ## 使用方法
-1. 确保 uTorrent 已开启 WebUI (网页界面)  
+1. 确保 uTorrent 是 3.0 以上版本（不支持 2.x 版本），并开启 WebUI (网页界面)  
 1.1 打开 uTorrent 设置 > 高级 > 网页界面  
-1.2 选上 "启用网页界面", 并在下方填写用户和密码, 记下来, 作为命令行 username 和 password 参数的值  
-2. 在 uTorrent 数据目录中（路径可能是 `C:/Users/<用户名>/AppData/Roaming/uTorrent/ipfilter.dat` ，该目录下应该有 resume.dat 文件存在）保证 ipfilter.dat 文件存在（若不存在则新建空白 ipfilter.dat 文件），脚本会在原有 ipfilter.dat 文件内容之后添加被屏蔽的 IP，不影响已有内容及其功能
-3. 在 releases 中下载 `utorrent-block-xunlei.exe`, 下载地址: [https://github.com/ShenHongFei/utorrent-block-xunlei/releases/download/v2.0/utorrent-block-xunlei.exe](https://github.com/ShenHongFei/utorrent-block-xunlei/releases/download/v2.0/utorrent-block-xunlei.exe)
-4. 查看用法: `utorrent-block-xunlei.exe --help`
+1.2 选上 "启用网页界面", 并在下方填写用户和密码, 记下来, 作为命令行 `--username` 和 `--password` 参数的值  
+2. 在 "uTorrent 设置 > 连接 > 监听端口 > 传入连接所使用的端口" 中查看设置的端口号，记下来，作为命令行 `--port` 参数的值
+3. 在 uTorrent 数据目录中（路径可能是 `C:/Users/<用户名>/AppData/Roaming/uTorrent/ipfilter.dat` ，该目录下应该有 resume.dat 文件存在）保证 ipfilter.dat 文件存在（若不存在则新建空白 ipfilter.dat 文件），脚本会在原有 ipfilter.dat 文件内容之后添加被屏蔽的 IP，不影响已有内容及其功能
+4. 在 releases 中下载 `utorrent-block-xunlei.exe`, 下载地址: [https://github.com/ShenHongFei/utorrent-block-xunlei/releases/download/v2.0/utorrent-block-xunlei.exe](https://github.com/ShenHongFei/utorrent-block-xunlei/releases/download/v2.0/utorrent-block-xunlei.exe)
+5. 查看用法: `utorrent-block-xunlei.exe --help`
 ```text
 Usage: utorrent-block-xunlei --port 50050 --username shf --password 123456 --ipfilter "C:/Users/shf/AppData/Roaming/uTorrent/ipfilter.dat"
 
@@ -97,9 +98,9 @@ Options:
   -h, --help             display help for command
 ```
 
-5. 启动 blocker (修改下参数的值): `utorrent-block-xunlei --port 50050 --username shf --password 123456 --ipfilter "C:/Users/shf/AppData/Roaming/uTorrent/ipfilter.dat"`
+6. 启动 blocker (修改下参数的值): `utorrent-block-xunlei --port 50050 --username shf --password 123456 --ipfilter "C:/Users/shf/AppData/Roaming/uTorrent/ipfilter.dat"`
 
-6. (可选，不影响屏蔽功能) 在 uTorrent 中开启屏蔽日志，查看被屏蔽的连接请求
+7. (可选，不影响屏蔽功能) 在 uTorrent 中开启屏蔽日志，查看被屏蔽的连接请求
     4.1 在 uTorrent 下方的日志面板中点击右键
     4.2 勾选 `记录用户通讯信息 > 记录拦截连接`
     4.3 有被屏蔽的用户连接时可以在 uTorrent 日志面板中看到类似下面的日志
@@ -112,6 +113,10 @@ Options:
 [2018-11-22 19:04:46]  IpFilter blocked peer 223.81.192.235
 ...
 ```
+
+8. 实时控制，查看状态，REPL
+在 `utorrent-block-xunlei` 命令行窗口中输入 `utorrent` 可通过 REPL 查看其属性，调用其方法
+如输入 `utorrent.reset_ipfilter()` 可清空屏蔽列表和 ipfilter.dat, `utorrent.print_blockeds()` 可查看被屏蔽的 IP
 
 
 ## API
