@@ -12,5 +12,6 @@ node_modules/
 /.npmignore
 /desktop.ini
 /icon.ico
+/icon.svg
 /tsconfig.json
 /package-lock.json

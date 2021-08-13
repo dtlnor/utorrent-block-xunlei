@@ -1,6 +1,6 @@
 {
     "name": "utorrent-block-xunlei",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "main": "./index.js",
     "bin": {
         "utorrent-block-xunlei": "./utorrent-block-xunlei.js"
@@ -30,7 +30,7 @@
     "homepage": "https://github.com/ShenHongFei/utorrent-block-xunlei",
     "repository": {
         "type": "git",
-        "url": "https://git.woa.com/ShenHongFei/utorrent-block-xunlei"
+        "url": "https://github.com/ShenHongFei/utorrent-block-xunlei"
     },
     "dependencies": {
         "bencode": "^2.0.2",

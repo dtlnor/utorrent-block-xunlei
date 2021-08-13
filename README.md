@@ -1,7 +1,7 @@
 # uTorrent 自动屏蔽迅雷脚本 (Xunlei Blocker of uTorrent)
 
 <p align='center'>
-    <img src='./icon.svg' alt='utorrent-block-xunlei icon' width='96'>
+    <img src='https://raw.githubusercontent.com/ShenHongFei/utorrent-block-xunlei/master/icon.svg' alt='utorrent-block-xunlei icon' width='96'>
 </p>
 
 <h2 align='center'>
@@ -70,8 +70,8 @@ go.torrent
 
 ## 预览
 ### 命令行监控
-![命令行监控](./preview/monitor-1.png)
-![](./preview/monitor-2.png)
+![命令行监控](https://github.com/ShenHongFei/utorrent-block-xunlei/raw/master/preview/monitor-1.png)
+![](https://github.com/ShenHongFei/utorrent-block-xunlei/raw/master/preview/monitor-2.png)
 
 ### resume.dat 解析及文件重定向
 ![resume.dat 解析及文件重定向](./preview/resume-dat-1.png)
