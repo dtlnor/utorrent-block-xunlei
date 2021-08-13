@@ -12,6 +12,9 @@
 </h3>
 
 <p align='center'>
+    <a href='https://github.com/ShenHongFei/utorrent-block-xunlei/releases' target='_blank'>
+        <img alt='github release' src='https://img.shields.io/github/v/release/ShenHongFei/utorrent-block-xunlei?color=birght-green' />
+    </a>
     <a href='https://www.npmjs.com/package/utorrent-block-xunlei' target='_blank'>
         <img alt='npm version' src='https://img.shields.io/npm/v/utorrent-block-xunlei.svg?style=flat-square&color=brightgreen' />
     </a>
