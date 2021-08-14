@@ -120,7 +120,7 @@ Options:
 
 8. 实时控制，查看状态，REPL
 在 `utorrent-block-xunlei` 命令行窗口中输入 `utorrent` 可通过 REPL 查看其属性，调用其方法
-如输入 `utorrent.reset_ipfilter()` 可清空屏蔽列表和 ipfilter.dat, `utorrent.print_blockeds()` 可查看被屏蔽的 IP
+如输入 `utorrent.print_blockeds()` 可查看被动态屏蔽的 IP
 
 9. 退出 utorrent-block-xunlei 时需在命令行窗口中输入 `exit()`, 以保证 `ipfilter.dat` 恢复到运行前的状态，不残留动态屏蔽的 IP
 
