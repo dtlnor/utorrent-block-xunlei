@@ -1,6 +1,6 @@
 import { isIPv6, isIPv4 } from 'net'
 
-import { request_page, request_json, fread_lines, fwrite, delay, log_line, inspect, start } from 'xshell'
+import { request_page, request_json, fwrite, delay, log_line, inspect, start, log_section, fread } from 'xshell'
 import QQWRY from 'lib-qqwry'
 
 export * from './resume-data'
@@ -430,14 +430,24 @@ export class Torrent {
 
 export class UTorrent {
     root_url: string
+    
     username: string
     password: string
-    ipfilter_dat: string
+    
+    fp_ipfilter: string
+    
+    /** 启动时 ipfilter 中已有的数据 */
+    static_ipfilter: string
     
     /** 检测 peers 并屏蔽的时间间隔 */
     interval: number
     
-    state: 'IDLE' | 'RUNNING' = 'IDLE'
+    /** 间隔 interval 秒自动重置当前时间间隔内被动态屏蔽的 IP */
+    interval_reset: number
+    
+    state: 'INIT' | 'IDLE' | 'RUNNING' = 'INIT'
+    
+    state_resetting: 'INIT' | 'IDLE' | 'RUNNING' = 'INIT'
     
     print: {
         /** ['下载'] */
@@ -453,9 +463,9 @@ export class UTorrent {
     
     token: string
     
-    torrents: Torrent[]
+    blocked_ips = new Set<string>()
     
-    blocked_ips: Set<string>
+    torrents: Torrent[]
     
     
     static async launch (exe: string) {
@@ -474,8 +484,9 @@ export class UTorrent {
             root_url: string
             username: string
             password: string
-            ipfilter_dat: string
+            fp_ipfilter: string
             interval: number
+            interval_reset: number
             
             /** print?: true */
             print?: boolean | {
@@ -487,12 +498,10 @@ export class UTorrent {
             }
         }
     ) {
-        
         let utorrent = new UTorrent({
-                ...options, 
-                blocked_ips: new Set((
-                    await fread_lines(options.ipfilter_dat)
-                ).trim_lines()),
+                ...options,
+                static_ipfilter: await fread(options.fp_ipfilter),
+                blocked_ips: new Set(),
                 print: (() => {
                     if (!('print' in options)) return { torrents: true, peers: true }
                     if (typeof options.print === 'boolean') return { torrents: options.print, peers: options.print }
@@ -509,7 +518,7 @@ export class UTorrent {
     
     /** get token */
     async get_token () {
-        const $ = await request_page(this.root_url + 'token.html', {
+        const $ = await request_page(`${this.root_url}token.html`, {
             auth: {
                 username: this.username,
                 password: this.password
@@ -612,7 +621,14 @@ export class UTorrent {
             this.blocked_ips.add(peer.ip)
         })
         
-        await fwrite(this.ipfilter_dat, [...this.blocked_ips].join_lines() + '\n', { print: Boolean(this.print.peers || this.print.torrents) })
+        await fwrite(
+            this.fp_ipfilter,
+            (
+                this.static_ipfilter + '\n' +
+                [...this.blocked_ips].join_lines() + '\n'
+            ),
+            { print: Boolean(this.print.peers || this.print.torrents) }
+        )
         
         await this.reload_ipfilter()
         
@@ -633,8 +649,15 @@ export class UTorrent {
     
     async reset_ipfilter () {
         this.blocked_ips = new Set()
-        await fwrite(this.ipfilter_dat, '')
+        await fwrite(this.fp_ipfilter, '')
         await this.reload_ipfilter()
+    }
+    
+    async reset_blocked_ips () {
+        await fwrite(this.fp_ipfilter, this.static_ipfilter)
+        log_section('reset dynamic blocked ips', { time: true })
+        this.blocked_ips = new Set()
+        await utorrent.reload_ipfilter()
     }
     
     
@@ -647,31 +670,86 @@ export class UTorrent {
     
     async start_blocking () {
         await this.get_token()
+        
+        if (this.state === 'RUNNING') return
+        
+        if (this.state === 'IDLE') {
+            this.state = 'RUNNING'
+            return
+        }
+        
+        // this.state === 'INIT'
+        
         this.state = 'RUNNING'
-        while (this.state === 'RUNNING') {
-            if (this.print.torrents || this.print.peers)
-                console.log('\n\n\n' + new Date().to_str())
-            
-            try {
-                if (this.print.torrents) {
-                    await this.print_torrents()
-                    log_line(200)
-                    await this.block_peers(this.torrents)
-                } else
-                    await this.block_peers()
+        
+        // start blocking
+        ;(async () => {
+            while (this.state === 'RUNNING') {
+                if (this.print.torrents || this.print.peers)
+                    console.log('\n\n\n' + new Date().to_str())
+                
+                try {
+                    if (this.print.torrents) {
+                        await this.print_torrents()
+                        log_line(200)
+                        await this.block_peers(this.torrents)
+                    } else
+                        await this.block_peers()
+                } catch (error) {
+                    this.state = 'INIT'
+                    throw error
+                }
                 
                 await delay(this.interval)
-            } catch (error) {
-                this.state = 'IDLE'
-                throw error
             }
-        }
-        console.log('uTorrent blocking stopped')
+            
+            if (this.state === 'IDLE')
+                this.state = 'INIT'
+        })()
+        
+        await this.start_resetting_blocked_ips()
     }
     
     
-    stop_blocking () {
+    async start_resetting_blocked_ips () {
+        if (this.state_resetting === 'RUNNING') return
+        
+        if (this.state_resetting === 'IDLE') {
+            this.state_resetting = 'RUNNING'
+            return
+        }
+        
+        // this.state_resetting === 'INIT'
+        
+        this.state_resetting = 'RUNNING'
+        ;(async () => {
+            while (true) {
+                await delay(this.interval_reset)
+                if (this.state_resetting !== 'RUNNING') break
+                await this.reset_blocked_ips()
+            }
+            
+            if (this.state_resetting === 'IDLE')
+                this.state_resetting = 'INIT'
+        })()
+    }
+    
+    
+    async stop_blocking () {
+        if (this.state === 'INIT') {
+            console.log('blocking hasn\'t started')
+            return
+        }
+        
+        if (this.state === 'IDLE') {
+            console.log('blocking already stopped')
+            return
+        }
+        
+        // this.state === 'RUNNING'
         this.state = 'IDLE'
+        await this.reset_blocked_ips()
+        console.log('uTorrent stopped blocking')
     }
     
     

@@ -38,51 +38,38 @@ declare global {
     
     program.parse(process.argv)
     
-    const { hostname, port, username, password, ipfilter: ipfilter_dat, interval, intervalReset: interval_reset } = program.opts()
+    const opts = program.opts()
+    
+    const { hostname, username, password }: { hostname: string, username: string, password: string } = opts as any
+    const port = Number(opts.port)
+    const fp_ipfilter = (opts.ipfilter as string).to_slash()
+    const interval = Number(opts.interval) * 1000
+    const interval_reset = Number(opts.intervalReset) * 1000
+    
     
     const options = {
         root_url: `http://${hostname}:${port}/gui/`,
         username,
         password,
-        ipfilter_dat,
-        interval: Number(interval) * 1000,
-        interval_reset: Number(interval_reset) * 1000,
+        fp_ipfilter,
+        interval,
+        interval_reset,
     }
     
     console.log(options)
-    
-    let ipfilter_bak: string
-    if (options.interval_reset)
-        ipfilter_bak = await fread(options.ipfilter_dat)
     
     let utorrent = await UTorrent.connect(options)
     
     global.utorrent = utorrent
     
+    await utorrent.start_blocking()
+    
     log_section('started blocking', { time: true, color: 'green' })
     
-    utorrent.start_blocking()
-    
-    
-    async function reset_dynamic_blocked_ips () {
-        await fwrite(options.ipfilter_dat, ipfilter_bak)
-        log_section('reset dynamic blocked ips', { time: true })
-        utorrent.blocked_ips = new Set()
-        await utorrent.reload_ipfilter()
-    }
-    
     async function exit () {
-        utorrent.stop_blocking()
-        await reset_dynamic_blocked_ips()
+        await utorrent.stop_blocking()
         process.exit()
     }
-    
-    ;(async () => {
-        while (true) {
-            await delay(options.interval_reset)
-            await reset_dynamic_blocked_ips()
-        }
-    })()
     
     global.exit = exit
     
