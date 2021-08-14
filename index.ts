@@ -121,7 +121,7 @@ export class Peer {
         if (this.client.includes('-XL0012-'))
             return ( this.client.slice(0, '-XL0012-'.length) + ' ***' ).limit(20)
         
-        return this.client.limit(20)
+        return this.client.limit(20).replaceAll('\u0007', '')
     }
     
     format_download_speed () {
