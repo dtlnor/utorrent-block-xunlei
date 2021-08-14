@@ -92,13 +92,17 @@ export class Peer {
             relevance
         })
         
-        
-        this.should_block = this.torrent.state[0] === '做种' ?
-            /-XL0012-|Xunlei|^7\.|aria2|Xfplay|dandanplay|FDM|go\.torrent|Mozilla/i.test(this.client) && this.upload_speed > 10 * 2 ** 10
-        : this.torrent.state[0] === '下载' ?
-            /-XL0012-|Xunlei|^7\.|aria2|Xfplay|dandanplay|FDM|go\.torrent|Mozilla/i.test(this.client) && this.uploaded > this.downloaded * 10 + 5 * 2**20
-        :
-            false
+        this.should_block = (() => {
+            if (!/-XL0012-|Xunlei|^7\.|aria2|Xfplay|dandanplay|FDM|go\.torrent|Mozilla/i.test(this.client)) return false
+            
+            const [state] = this.torrent.state
+            if (state === '做种')
+                return this.upload_speed > 10 * 2 ** 10  // 我方上传速度大于 10 KB/s
+            if (state === '下载')
+                return this.uploaded > this.downloaded * 10 + 5 * 2**20  // 累计吸血量大于 `10 × 累计上传量 + 5MB`
+            
+            return false
+        })()
     }
     
     

@@ -25,10 +25,53 @@
 
 ## 中文 | [English](./README.en.md)
 
-## 功能
+## 屏蔽功能
 ### 每隔 20 秒，自动检查 uTorrent 已连接的用户列表，找出迅雷客户端，强制断开，不给吸血雷上传任何数据，并将用户 IP 加入黑名单阻止其再次连接，把带宽留给正规 BT 客户端
 
-- 支持 IP 定位，可根据地理位置屏蔽 peers
+### 屏蔽策略
+- 下方屏蔽列表中的非法客户端才会被屏蔽
+- 任务处于做种状态时：屏蔽吸血速度大于 `10 KB/s` 的非法客户端，将带宽留给合法客户端
+- 任务处于下载状态时，对有上传流量的非法客户端放宽处理：只屏蔽累计吸血量大于 `10 × 累计上传量 + 5MB` 的非法客户端
+
+理由:  
+过于频繁的重载 ipfilter.dat 可能影响上传、下载速度，因此设置了一个阈值，忽略已连接但吸血速度过低的非法客户端
+下载时部分非法客户端也有积极上传，为了提升我方的下载速度，暂时赦免他们，也给他们上传
+
+
+### 屏蔽列表
+-XL0012-***  
+Xunlei/***  
+7.x.x.x
+Xfplay  
+FDM  
+dandanplay  
+Mozilla  
+go.torrent
+aria2
+
+### 屏蔽算法
+1. 根据 uTorrent 的 WebUI API 发送 HTTP 请求，获取所有已连接用户 (peers) 信息
+2. 按照用户 (peer) 的客户端名称 (client) 筛选出使用迅雷的用户，将 IP 写入 ipfilter.dat 文件
+3. 发送 HTTP 请求让 uTorrent 重新加载 ipfilter.dat
+4. uTorrent 禁止 ipfilter.dat 中的 IP 连接
+
+### 代码逻辑
+```ts
+this.should_block = (() => {
+    if (!/-XL0012-|Xunlei|^7\.|aria2|Xfplay|dandanplay|FDM|go\.torrent|Mozilla/i.test(this.client)) return false
+    
+    const [state] = this.torrent.state
+    if (state === '做种')
+        return this.upload_speed > 10 * 2 ** 10  // 我方上传速度大于 10 KB/s
+    if (state === '下载')
+        return this.uploaded > this.downloaded * 10 + 5 * 2**20  // 累计吸血量大于 `10 × 累计上传量 + 5MB`
+    
+    return false
+})()
+```
+
+## 其他功能
+- 支持 IP 定位，显示地理位置
 
 - 批量可编程式修改 uTorrent 的 resume.dat 内保存的任务信息，从而:
     - 在任务或下载文件丢失后，通过修改 resume.dat 跳过文件强制检查，继续做种
@@ -38,34 +81,6 @@
 
 - 命令行监控，实时查看 peers 情况  
 
-- 反吸血屏蔽策略，下载时对有上传流量的 peers 放宽处理，如下
-    ```ts
-    this.should_block = this.torrent.state[0] === '做种' ?
-        /-XL0012-|Xunlei|^7\.|aria2|Xfplay|dandanplay|FDM|go\.torrent|Mozilla/i.test(this.client) && this.upload_speed > 10 * 2 ** 10
-    : this.torrent.state[0] === '下载' ?
-        /-XL0012-|Xunlei|^7\.|aria2|Xfplay|dandanplay|FDM|go\.torrent|Mozilla/i.test(this.client) && this.uploaded > this.downloaded * 10 + 5 * 2**20
-    :
-        false
-    ```
-
-## 屏蔽列表
-### 完全屏蔽
--XL0012-***  
-Xunlei/***  
-7.x.x.x
-### 反吸血屏蔽 (下载量超过上传量的两倍时屏蔽)
-Xfplay  
-FDM  
-dandanplay  
-Mozilla  
-go.torrent
-
-
-## 屏蔽算法
-1. 根据 uTorrent 的 WebUI API 发送 HTTP 请求，获取所有已连接用户 (peers) 信息
-2. 按照用户 (peer) 的客户端名称 (client) 筛选出使用迅雷的用户，将 IP 写入 ipfilter.dat 文件
-3. 发送 HTTP 请求让 uTorrent 重新加载 ipfilter.dat
-4. uTorrent 禁止 ipfilter.dat 中的 IP 连接
 
 
 ## 预览
