@@ -93,7 +93,7 @@ export class Peer {
         })
         
         this.should_block = (() => {
-            if (!/-XL0012-|Xunlei|^7\.|aria2|Xfplay|dandanplay|FDM|go\.torrent|Mozilla/i.test(this.client)) return false
+            if (!/-XL0012-|Xunlei|^7\.|aria2|Xfplay|dandanplay|FDM|go\.torrent|Mozilla|anacrolix/i.test(this.client)) return false
             
             const [state] = this.torrent.state
             if (state === '做种')
